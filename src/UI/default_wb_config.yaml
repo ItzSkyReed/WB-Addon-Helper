@@ -7,11 +7,7 @@ release_path: "./releases"
 
 wb_addon_path: "./wb_addon"
 
-# TEMPLATES
-# Define reusable settings for validation, language packs, and checklists.
-# Datapacks can inherit these configurations using 'template: <name>'
-# with automatic deep property merging (explicit values override template defaults).
-templates:
+database_path: "wb_addon.db"
 
 # DATAPACKS
 # Filesystem paths, domains, and settings for each loaded datapack.
