@@ -20,7 +20,7 @@ public class MainMenuAction(IEnumerable<IMainMenuAction> menuActions) : ITuiActi
 
         while (true)
         {
-            TuiTheme.RenderHeader("BACAP Manager");
+            TuiTheme.RenderHeader("WB Addon Manager");
 
             var selected = await TuiTheme.PromptSelectionOrDefaultAsync(
                 "Choose actions (press [bold]Q[/] to return)",

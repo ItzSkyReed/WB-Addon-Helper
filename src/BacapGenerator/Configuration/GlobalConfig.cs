@@ -7,7 +7,6 @@ namespace BacapGenerator.Configuration;
 /// </summary>
 public sealed class GlobalConfig
 {
-
     /// <summary>
     /// Gets the filesystem path to the directory containing extracted Minecraft registry JSON files.
     /// </summary>
@@ -21,10 +20,16 @@ public sealed class GlobalConfig
     public string ReleasePath { get; init; } = null!;
 
     /// <summary>
-    /// Gets the target filesystem path where generated release archives will be written.
+    /// Gets the target filesystem path to the worldborder addon itself.
     /// </summary>
-    [ConfigurationKeyName("document_generator")]
-    public DocumentGeneratorConfig? DocumentGenerator { get; init; }
+    [ConfigurationKeyName("wb_addon_path")]
+    public string WbAddonPath { get; init; } = null!;
+
+    /// <summary>
+    /// Gets the filesystem path to the SQLite database file storing WorldBorder addon metadata and rewards.
+    /// </summary>
+    [ConfigurationKeyName("database_path")]
+    public string DatabasePath { get; init; } = null!;
 
     /// <summary>
     /// Validates all root configuration settings.
@@ -33,11 +38,15 @@ public sealed class GlobalConfig
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(RegistryPath))
-            throw new InvalidOperationException("'registry_path' must be provided in config.yaml.");
+            throw new InvalidOperationException("'registry_path' must be provided.");
 
         if (string.IsNullOrWhiteSpace(ReleasePath))
             throw new InvalidOperationException("'release_path' must be provided.");
 
-        DocumentGenerator?.Validate();
+        if (string.IsNullOrWhiteSpace(WbAddonPath))
+            throw new InvalidOperationException("'wb_addon_path' must be provided.");
+
+        if (string.IsNullOrWhiteSpace(DatabasePath))
+            throw new InvalidOperationException("'database_path' must be provided.");
     }
 }

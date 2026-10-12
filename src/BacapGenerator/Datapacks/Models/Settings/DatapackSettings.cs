@@ -1,9 +1,6 @@
 ﻿using BacapGenerator.Common;
 using BacapGenerator.Configuration;
 using BacapGenerator.Configuration.Exceptions;
-using BacapGenerator.Datapacks.Models.Settings.Checklists;
-using BacapGenerator.Datapacks.Models.Settings.Scoreboards;
-using BacapGenerator.Datapacks.Models.Settings.Validation;
 using Core.Registries;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
@@ -21,12 +18,6 @@ public sealed class DatapackSettings
     /// </summary>
     [ConfigurationKeyName("path")]
     public string Path { get; init; } = string.Empty;
-
-    /// <summary>
-    /// Gets the optional language pack settings.
-    /// </summary>
-    [ConfigurationKeyName("language_pack")]
-    public LanguagePackSettings? LanguagePackSettings { get; init; }
 
     /// <summary>
     /// Gets the primary namespace containing the advancements.
@@ -51,10 +42,6 @@ public sealed class DatapackSettings
     /// </summary>
     public DatapackType DatapackType { get; private set; }
 
-    [PublicAPI]
-    [ConfigurationKeyName("checklists")]
-    public List<ChecklistDefinitionSettings> Checklists { get; init; } = [];
-
     /// <summary>
     /// Gets the precalculated macro command identifier.
     /// </summary>
@@ -67,65 +54,9 @@ public sealed class DatapackSettings
     [ConfigurationKeyName("parent_datapack_id")]
     public string? ParentDatapackId { get; init; }
 
-    /// <summary>
-    /// Gets the optional identifier of the parent datapack when acting as an override addon.
-    /// </summary>
-    [PublicAPI]
-    [ConfigurationKeyName("checklist_triggers_folder")]
-    public string ChecklistTriggersFolder { get; init; } = string.Empty;
-
-    [PublicAPI]
-    [ConfigurationKeyName("custom_scores")]
-    public List<ScoreboardScoreUpdateSettings> CustomScores { get; init; } = [];
-
-    [PublicAPI]
-    [ConfigurationKeyName("custom_points")]
-    public List<ScoreboardPointUpdateSettings> CustomPoints { get; init; } = [];
-
-    /// <summary>
-    /// Gets the mapping of advancement tabs to their milestone advancement Minecraft paths.
-    /// </summary>
-    [PublicAPI]
-    [ConfigurationKeyName("milestone_mc_paths")]
-    public Dictionary<BacapTab, string>? MilestoneMcPaths { get; init; }
-
-    /// <summary>
-    /// Gets the Minecraft resource path for the advancement legend reward.
-    /// </summary>
-    [PublicAPI]
-    [ConfigurationKeyName("advancement_legend_mc_path")]
-    public string? AdvancementLegendMcPath { get; init; }
-
-    [PublicAPI]
-    [ConfigurationKeyName("compatibility_addon_settings")]
-    public CompatibilityAddonSettings CompatibilityAddonSettings { get; init; } = new();
-
-    /// <summary>
-    /// Gets the validation rules and thresholds configured for this specific datapack.
-    /// If omitted in configuration, default settings are used.
-    /// </summary>
-    [PublicAPI]
-    [ConfigurationKeyName("validation")]
-    public DatapackValidationSettings ValidationSettings { get; init; } = new();
-
-    /// <summary>
-    /// Gets the validation rules and thresholds configured for this specific datapack.
-    /// If omitted in configuration, default settings are used.
-    /// </summary>
-    [PublicAPI]
-    [ConfigurationKeyName("document_generator")]
-    public DocumentGeneratorSettings? DocumentGeneratorSettings { get; init; }
-
     [PublicAPI]
     [ConfigurationKeyName("fanpacks_namespace")]
     public string? FanpacksNamespace { get; init; }
-
-    /// <summary>
-    /// Gets the optional name of the release.
-    /// </summary>
-    [PublicAPI]
-    [ConfigurationKeyName("release_name")]
-    public string? ReleaseName { get; init; }
 
     /// <summary>
     /// Validates the current datapack settings and verifies its integrity.
@@ -138,7 +69,7 @@ public sealed class DatapackSettings
     /// datapackSettings.Validate("bacaped", minecraftData);
     /// </code>
     /// </example>
-    public void Validate(string datapackId, MinecraftData minecraftData)
+    public void Validate(string datapackId)
     {
         if (string.IsNullOrWhiteSpace(Path))
         {
@@ -183,53 +114,5 @@ public sealed class DatapackSettings
                 $"Compatibility addon '{datapackId}' must specify 'parent_datapack_id'.",
                 "parent_datapack_id");
         }
-
-        if (Checklists.Count > 0 && string.IsNullOrWhiteSpace(ChecklistTriggersFolder))
-        {
-            throw new DatapackConfigurationException(
-                datapackId,
-                DatapackErrorKind.MissingPath,
-                $"Checklist triggers folder must be defined for datapack '{datapackId}' because checklists are present.",
-                nameof(ChecklistTriggersFolder));
-        }
-
-        LanguagePackSettings?.Validate(datapackId);
-        ValidationSettings.Validate(datapackId);
-
-        foreach (var checklist in Checklists)
-        {
-            checklist.Validate(datapackId, minecraftData);
-        }
-
-        var seenScoreIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var score in CustomScores)
-        {
-            score.Validate(datapackId);
-            if (!seenScoreIds.Add(score.Id))
-            {
-                throw new DatapackConfigurationException(
-                    datapackId,
-                    DatapackErrorKind.InvalidScoreConfiguration,
-                    $"Duplicate score counter ID '{score.Id}' detected in datapack '{datapackId}'.",
-                    score.Id);
-            }
-        }
-
-        var seenPointIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var point in CustomPoints)
-        {
-            point.Validate(datapackId);
-            if (!seenPointIds.Add(point.Id))
-            {
-                throw new DatapackConfigurationException(
-                    datapackId,
-                    DatapackErrorKind.InvalidScoreConfiguration,
-                    $"Duplicate point counter ID '{point.Id}' detected in datapack '{datapackId}'.",
-                    point.Id);
-            }
-        }
-
-        CompatibilityAddonSettings.Validate(datapackId);
-        DocumentGeneratorSettings?.Validate(datapackId);
     }
 }

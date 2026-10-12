@@ -37,11 +37,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="default_config.yaml" />
+        <EmbeddedResource Include="default_wb_config.yaml" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\BacapGenerator\BacapGenerator.csproj" />
+        <ProjectReference Include="..\WbGenerator\WbGenerator.csproj" />
     </ItemGroup>
 
 
@@ -51,10 +52,10 @@
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.11" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.12" />
         <PackageReference Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
         <PackageReference Include="Spectre.Console" Version="0.57.2" />
     </ItemGroup>

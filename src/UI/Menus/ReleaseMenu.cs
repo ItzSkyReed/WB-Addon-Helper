@@ -1,175 +1,107 @@
 ﻿using System.Text.RegularExpressions;
-using BacapGenerator.Advancements.Models;
-using BacapGenerator.Advancements.Services;
-using BacapGenerator.Checklists;
-using BacapGenerator.Configuration;
-using BacapGenerator.Datapacks;
-using BacapGenerator.Datapacks.Models;
-using BacapGenerator.Datapacks.Models.Settings;
-using BacapGenerator.Datapacks.Services;
-using BacapGenerator.Io;
 using Spectre.Console;
 using UI.Interfaces;
-using UI.Services;
 using UI.Styling;
+using WbGenerator.Exceptions;
+using WbGenerator.Services;
+using WbGenerator.Services.Interfaces;
 
 namespace UI.Menus;
 
 /// <summary>
-/// Sub-menu for managing existing advancements and coordinating datapack releases.
+/// Terminal UI action that coordinates WorldBorder addon releases, prompting for semantic versioning
+/// and compiling distribution archives.
 /// </summary>
-public partial class ReleaseMenu(
-    DatapackRegistry registry,
-    GlobalConfig config,
-    ValidationRunnerService validationService,
-    DocumentationRunnerService? documentationRunner = null) : IMainMenuAction
+/// <param name="releaseService">The service executing the release workflow.</param>
+public partial class ReleaseMenu(IWbReleaseService releaseService) : IMainMenuAction
 {
-    private readonly DocumentationRunnerService _documentationRunner =
-        documentationRunner ?? new DocumentationRunnerService(registry, config);
-
     [GeneratedRegex(@"^[0-9]+\.[0-9]+(\.[0-9]+)?(-(alpha|beta))?$", RegexOptions.IgnoreCase)]
     private static partial Regex VersionPatternRegex();
 
-    public string Title => "Make Release";
+    public string Title => "Make WB Addon Release";
 
     /// <summary>
-    /// Executes the interactive release process by prompting for versioning per parent addon family
-    /// and archiving all corresponding datapack folders into distribution archives.
+    /// Prompts the user for a version string and executes the release packaging pipeline.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when an orphaned compatibility addon is detected.</exception>
     public async Task ExecuteAsync()
     {
-        if (string.IsNullOrWhiteSpace(config.ReleasePath))
+        TuiTheme.RenderHeader("WorldBorder Addon Release");
+
+        var version = AskValidVersion();
+        if (version is null)
         {
-            TuiTheme.ShowError("Release path not specified, release will be cancelled.");
+            TuiTheme.ShowWarning("Release operation cancelled.");
             TuiTheme.WaitForKey();
             return;
         }
 
-        var nonReferencePacks = registry.Values
-            .Where(dp => dp.Settings.DatapackType != DatapackType.Reference)
-            .ToArray();
-
-        // Pre-release ValidationSettings
-        TuiTheme.RenderHeader("Pre-Release ValidationSettings");
-        var validationPassed = true;
-
-        foreach (var pack in nonReferencePacks)
+        try
         {
-            if (!validationService.ValidateAndRenderReport(pack))
-                validationPassed = false;
-        }
+            var zipPath = string.Empty;
 
-        if (!validationPassed)
-        {
-            TuiTheme.ShowError("ValidationSettings failed. Please fix the highlighted ERRORS before making a release.");
-            TuiTheme.WaitForKey();
-            return; // Abort release
-        }
-
-        AnsiConsole.MarkupLine("\n[grey]Synchronizing documentation...[/]");
-        if (!_documentationRunner.RunAndRenderReport(promptOnOrphaned: true))
-        {
-            TuiTheme.WaitForKey();
-            return; // Abort release if stubs were generated or user refused orphaned requirements
-        }
-
-        TuiTheme.ShowSuccess("All datapacks passed validation! Proceeding with release.");
-
-        // Separate root addons from compatibility addons
-        var rootAddons = nonReferencePacks
-            .Where(dp => dp.Settings.DatapackType == DatapackType.Addon)
-            .ToArray();
-
-        var compatibilityAddons = nonReferencePacks
-            .Where(dp => dp.Settings.DatapackType == DatapackType.CompatibilityAddon)
-            .ToArray();
-
-        // Iterate through each root addon family
-        foreach (var parent in rootAddons)
-        {
-            var parentId = parent.Id;
-            var parentDisplayName = parent.Settings.ReleaseName ?? parent.Settings.MainNamespace;
-
-            AnsiConsole.MarkupLine($"\n[bold yellow]Processing release family:[/] [cyan]{parentDisplayName}[/]");
-
-            // Ask version once per root family
-            var version = AskValidVersion();
-
-            // Find all compatibility addons linked to this parent
-            var relatedChildren = compatibilityAddons
-                .Where(child => string.Equals(child.Settings.ParentDatapackId, parentId, StringComparison.OrdinalIgnoreCase))
-                .ToArray();
-
-            var releaseFamily = new List<Datapack>(1 + relatedChildren.Length) { parent };
-            releaseFamily.AddRange(relatedChildren);
-
-            // Process archiving for each member of the family
-            foreach (var datapack in releaseFamily)
-            {
-                AnsiConsole.MarkupLine($"  [green]•[/] Processing [white]{datapack.ReleaseName}[/] (version [teal]{version}[/])...");
-
-                if (datapack.Settings.DatapackType == DatapackType.Addon)
+            await AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .SpinnerStyle(Style.Parse("teal"))
+                .StartAsync("Generating addon files and compiling release archive...", async _ =>
                 {
-                    GlobalAdvancementsService.GenerateAndSaveAll(datapack);
-                    GlobalFunctionsService.GenerateAndSaveAll(datapack);
+                    zipPath = await releaseService.CreateReleaseAsync(version);
+                });
 
-                    ChecklistsService.GenerateAndSaveAll(datapack);
-
-                    foreach (var advancement in datapack.Advancements.OfType<ValidAdvancement>())
-                    {
-                        AdvancementIoManager.SaveAdvancement(advancement);
-                    }
-                }
-
-                await DatapackIoManager.ArchiveDatapackAsync(datapack, version, config.ReleasePath);
-            }
+            Console.WriteLine();
+            TuiTheme.ShowSuccess($"Release archive successfully created at:\n[cyan]{Markup.Escape(zipPath)}[/]");
         }
-
-        TuiTheme.ShowSuccess("Successfully archived all datapacks");
-        TuiTheme.WaitForKey();
-
-        var processedIds = rootAddons.Select(a => a.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var orphanedChildren = compatibilityAddons
-            .Where(c => string.IsNullOrWhiteSpace(c.Settings.ParentDatapackId) || !processedIds.Contains(c.Settings.ParentDatapackId))
-            .ToArray();
-
-        if (orphanedChildren.Length > 0)
+        catch (WbRewardMissingException ex)
         {
-            var orphanNames = string.Join(", ", orphanedChildren.Select(c => c.Settings.MainNamespace));
-            throw new InvalidOperationException($"Found orphaned CompatibilityAddons without a registered parent Addon: {orphanNames}");
+            Console.WriteLine();
+            TuiTheme.ShowError(
+                $"Missing database configuration!\n" +
+                $"Advancement: [yellow]{Markup.Escape(ex.AdvancementId)}[/]\n" +
+                $"Reward function: [yellow]{Markup.Escape(ex.RewardPath)}[/]\n" +
+                $"Please run 'Add Missing' before creating a release.");
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine();
+            TuiTheme.ShowError($"Failed to compile release: {Markup.Escape(ex.Message)}");
+        }
+
+        TuiTheme.WaitForKey();
     }
 
     /// <summary>
-    /// Prompts the user to enter a version string matching the pattern 'X.Y[.Z][-alpha|-beta]'.
-    /// Continues prompting until validation passes.
+    /// Prompts the user for a valid semantic-style version or cancellation.
     /// </summary>
-    /// <returns>A validated semantic-style version string.</returns>
-    /// <example>
-    /// Valid values: "1.0", "1.0.3", "2.1-beta", "3.0.0-alpha".
-    /// </example>
-    private static string AskValidVersion()
+    /// <returns>The validated version string, or <see langword="null"/> if aborted.</returns>
+    private static string? AskValidVersion()
     {
-        return AnsiConsole.Prompt(
-            new TextPrompt<string>("Enter [green]datapack version[/]:")
+        var input = AnsiConsole.Prompt(
+            new TextPrompt<string>("Enter [green]datapack version[/] (or 'cancel'):")
                 .PromptStyle("teal")
-                .Validate(input =>
+                .Validate(val =>
                 {
-                    if (string.IsNullOrWhiteSpace(input))
-                        return ValidationResult.Error("[red]Version cannot be empty![/]");
+                    var trimmed = val.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmed))
+                        return ValidationResult.Error("Version cannot be empty.");
 
-                    var trimmed = input.Trim();
+                    if (trimmed.Equals("cancel", StringComparison.OrdinalIgnoreCase) ||
+                        trimmed.Equals("q", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return ValidationResult.Success();
+                    }
 
                     if (!VersionPatternRegex().IsMatch(trimmed))
                     {
                         return ValidationResult.Error(
-                            "[red]Invalid format![/] Expected: [yellow]X.Y[/], [yellow]X.Y.Z[/], [yellow]X.Y-alpha[/], [yellow]X.Y.Z-beta[/] etc."
-                        );
+                            "Invalid format! Expected: X.Y, X.Y.Z, X.Y-alpha, X.Y.Z-beta etc.");
                     }
 
                     return ValidationResult.Success();
-                }));
+                })).Trim();
+
+        return input.Equals("cancel", StringComparison.OrdinalIgnoreCase) ||
+               input.Equals("q", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : input;
     }
 }

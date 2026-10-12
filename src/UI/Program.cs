@@ -12,8 +12,8 @@ using UI.Styling;
 
 Console.OutputEncoding = Encoding.UTF8;
 
-const string configFileName = "config.yaml";
-const string embeddedConfigResourceName = "UI.default_config.yaml";
+const string configFileName = "wb_config.yaml";
+const string embeddedConfigResourceName = "UI.default_wb_config.yaml";
 
 var isVerbose = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase)
                 || args.Contains("-v", StringComparer.OrdinalIgnoreCase)
@@ -38,6 +38,7 @@ try
                 .AddUserConfiguration()
                 .AddMinecraftRegistries(context.Configuration)
                 .AddDatapackServices()
+                .AddWbAddonServices()
                 .AddUiActions();
         })
         .Build();

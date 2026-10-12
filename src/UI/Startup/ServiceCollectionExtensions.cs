@@ -11,11 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using UI.Actions.Advancements;
 using UI.Actions.Advancements.Debug;
-using UI.Actions.Datapacks;
 using UI.Configuration;
 using UI.Interfaces;
 using UI.Menus;
-using UI.Services;
 
 namespace UI.Startup;
 
@@ -84,7 +82,6 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<DatapackRegistry>();
             services.AddTransient<IDatapackFactory, DatapackFactory>();
             services.AddTransient<DatapackLoaderService>();
-            services.AddTransient<ValidationRunnerService>();
 
             return services;
         }
@@ -117,30 +114,16 @@ public static class ServiceCollectionExtensions
             // Root and Sub-Menus
             services.AddTransient<MainMenuAction>();
             services.AddTransient<IMainMenuAction, ManageAdvancementsMenu>();
-            services.AddTransient<IMainMenuAction, ManageDatapacksMenu>();
             services.AddTransient<IMainMenuAction, ReleaseMenu>();
             services.AddTransient<IMainMenuAction, SyncPacksMenu>();
+            services.AddTransient<IMainMenuAction, AddMissingRewardsMenu>();
 
             // Advancement Management Actions
-            services.AddTransient<IManageAdvancementsAction, AdvancementStatsAction>();
-            services.AddTransient<IManageAdvancementsAction, AdvancementInfoAction>();
-            services.AddTransient<IManageAdvancementsAction, AdvancementEditorAction>();
-            services.AddTransient<IManageAdvancementsAction, AdvancementFunctionsSetupAction>();
-            services.AddTransient<IManageAdvancementsAction, AdvancementsFormatAction>();
-            services.AddTransient<IManageAdvancementsAction, AdvancementsRecoverAction>();
-            services.AddTransient<IManageAdvancementsAction, GenerateMilestonesAction>();
             services.AddTransient<IManageAdvancementsAction, DebugAdvancementsMenuAction>();
 
             // Advancement Debug Actions
             services.AddTransient<IDebugAdvancementsAction, ShowTechnicalInvalidAction>();
             services.AddTransient<IDebugAdvancementsAction, ShowBacapAdvancementsByTierAction>();
-
-            // Datapack Actions
-            services.AddTransient<IManageDatapacksAction, GenerateDatapackFunctionsAction>();
-            services.AddTransient<IManageDatapacksAction, ValidateDatapacksAction>();
-            services.AddTransient<IManageDatapacksAction, GenerateDocumentationAction>();
-            services.AddTransient<IManageDatapacksAction, SyncWithTranslationPack>();
-
             return services;
         }
     }

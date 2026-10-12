@@ -31,15 +31,6 @@ public class Datapack : IReadOnlyDatapack
     public DirectoryInfo DatapackDataPath { get; init; }
 
     /// <summary>
-    /// Gets the display name for distribution releases.
-    /// Returns the explicitly configured <see cref="DatapackSettings.ReleaseName"/>,
-    /// or falls back to a predefined value based on <see cref="Id"/>.
-    /// </summary>
-    public string ReleaseName => !string.IsNullOrWhiteSpace(Settings.ReleaseName)
-        ? Settings.ReleaseName
-        : $"{Id} Datapack";
-
-    /// <summary>
     /// Gets the global Minecraft registry data.
     /// </summary>
     public MinecraftData MinecraftData { get; init; }
@@ -93,31 +84,7 @@ public class Datapack : IReadOnlyDatapack
 
         Id = id;
         Settings = settings;
-        MinecraftData = minecraftData;
         DatapackDataPath = new DirectoryInfo(Path.Combine(Settings.Path, "data"));
-    }
-
-    /// <summary>
-    /// Replaces an existing managed advancement and resets the lookup cache.
-    /// </summary>
-    /// <param name="oldAdvancement">The advancement to be replaced.</param>
-    /// <param name="newAdvancement">The replacement instance.</param>
-    /// <returns><see langword="true"/> if replaced; otherwise, <see langword="false"/>.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when either argument is null.</exception>
-    public bool ReplaceAdvancement(ManagedAdvancement oldAdvancement, ManagedAdvancement newAdvancement)
-    {
-        ArgumentNullException.ThrowIfNull(oldAdvancement);
-        ArgumentNullException.ThrowIfNull(newAdvancement);
-
-        var index = Advancements.IndexOf(oldAdvancement);
-        if (index < 0)
-        {
-            return false;
-        }
-
-        Advancements[index] = newAdvancement;
-        AdvancementsById = null!; // Reset cache
-        return true;
     }
 
 

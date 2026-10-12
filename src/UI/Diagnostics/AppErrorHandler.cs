@@ -1,5 +1,4 @@
 ﻿using BacapGenerator.Configuration.Exceptions;
-using BacapGenerator.DocGen.Requirements.Exceptions;
 using Core.Registries.Exceptions;
 using Microsoft.Extensions.Options;
 using Spectre.Console;
@@ -55,9 +54,6 @@ public static class AppErrorHandler
                 ConfigurationErrorHandler.RenderBootstrapError(exception);
                 break;
 
-            case RequirementsYamlParseException yamlEx:
-                RenderYamlParseError(yamlEx);
-                break;
 
             // Binders throw InvalidOperationException containing FormatException on bad TypeConverter conversion
             case InvalidOperationException { InnerException: FormatException } invEx:
@@ -105,26 +101,6 @@ public static class AppErrorHandler
                       $"(e.g., 'default', 'Hardcore') in [white]config.yaml[/] to prevent overwriting each other's documentation.";
 
         TuiTheme.ShowAlert("[bold red] Configuration Conflict [/]", content, Color.Red);
-    }
-
-    /// <summary>
-    /// Displays a styled TUI alert when the requirements YAML file contains invalid syntax.
-    /// </summary>
-    private static void RenderYamlParseError(RequirementsYamlParseException ex)
-    {
-        ArgumentNullException.ThrowIfNull(ex);
-
-        var file = Markup.Escape(Path.GetFileName(ex.FilePath));
-        var errorMsg = Markup.Escape(ex.InnerException?.Message ?? ex.Message);
-
-        var content = $"Failed to parse document requirements.\n" +
-                      $"File: [bold cyan]{file}[/]\n" +
-                      $"Location: Line [bold yellow]{ex.LineNumber}[/], Col [bold yellow]{ex.Column}[/]\n\n" +
-                      $"[bold red]Error:[/] {errorMsg}\n\n" +
-                      $"[bold white]Tip:[/] YAML is very strict about spaces. Ensure you use spaces (not tabs) for indentation, " +
-                      $"and check that all colons ':' are followed by a space or a newline.";
-
-        TuiTheme.ShowAlert("[bold red] YAML Syntax Error [/]", content, Color.Red);
     }
 
     /// <summary>

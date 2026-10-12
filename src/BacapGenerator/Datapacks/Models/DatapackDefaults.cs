@@ -115,6 +115,13 @@ public static class DatapackDefaults
         DescriptionColor = "#49DB49"
     };
 
+    private static readonly AdvancementMessageSettingsEntry RootEntry = new()
+    {
+        TranslationKey = "",
+        TitleColor = "#CCCCCC",
+        DescriptionColor = "#CCCCCC"
+    };
+
     /// <summary>
     /// Resolves default message settings for the specified advancement tier.
     /// </summary>
@@ -135,6 +142,7 @@ public static class DatapackDefaults
         BacapAdvancementTier.Challenge => ChallengeEntry,
         BacapAdvancementTier.Goal => GoalEntry,
         BacapAdvancementTier.Task => TaskEntry,
+        BacapAdvancementTier.Root => RootEntry,
         _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unsupported advancement tier.")
     };
 
@@ -183,6 +191,12 @@ public static class DatapackDefaults
     };
 
 
+    private static readonly BacapTierProfile RootTierProfile = new()
+    {
+        Frame = AdvancementFrame.Task,
+        DescriptionColor = "#CCCCCC"
+    };
+
     /// <summary>
     /// Resolves default tier profile for the specified advancement tier.
     /// </summary>
@@ -203,6 +217,7 @@ public static class DatapackDefaults
         BacapAdvancementTier.Challenge => ChallengeTierProfile,
         BacapAdvancementTier.Goal => GoalTierProfile,
         BacapAdvancementTier.Task => TaskTierProfile,
+        BacapAdvancementTier.Root => RootTierProfile,
         _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unsupported advancement tier.")
     };
 }

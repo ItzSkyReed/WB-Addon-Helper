@@ -2,6 +2,7 @@
 using Core.Commands.Impl;
 using Core.Commands.Models;
 using Core.McFunctions.Models;
+using Core.Registries;
 using Core.TextComponents.Components;
 using Core.TextComponents.Models;
 using JetBrains.Annotations;

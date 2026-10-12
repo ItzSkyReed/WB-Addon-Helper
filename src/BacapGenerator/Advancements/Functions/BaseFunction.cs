@@ -1,5 +1,6 @@
 ﻿using BacapGenerator.Advancements.Models;
 using Core.McFunctions.Models;
+using Core.Registries;
 using JetBrains.Annotations;
 
 namespace BacapGenerator.Advancements.Functions;

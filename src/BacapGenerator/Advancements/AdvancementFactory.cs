@@ -5,6 +5,7 @@ using BacapGenerator.Datapacks.Models;
 using BacapGenerator.Utils;
 using Core.Advancements.Models;
 using Core.McFunctions.Models;
+using Core.Registries;
 
 namespace BacapGenerator.Advancements;
 
@@ -20,6 +21,7 @@ public static class AdvancementFactory
     /// <param name="file">The physical advancement file info.</param>
     /// <param name="jsonContent">The raw JSON string to parse.</param>
     /// <param name="datapack">The owning datapack.</param>
+    /// <param name="minecraftData">Minecraft global registries</param>
     /// <returns>
     /// An instance of <see cref="ValidAdvancement"/> (<see cref="BacapAdvancement"/> or <see cref="TechnicalAdvancement"/>)
     /// if successfully parsed; otherwise, an <see cref="InvalidAdvancement"/>.
@@ -48,6 +50,7 @@ public static class AdvancementFactory
     /// <param name="file">The physical advancement file info.</param>
     /// <param name="parsedData">The valid, parsed core advancement model.</param>
     /// <param name="datapack">The owning datapack.</param>
+    /// <param name="minecraftData">Minecraft global registries</param>
     /// <returns>
     /// A <see cref="TechnicalAdvancement"/> if display metadata is missing,
     /// a fully initialized <see cref="BacapAdvancement"/> if valid,

@@ -17,8 +17,7 @@ public partial class DatapackLoaderService(
     IOptions<Dictionary<string, DatapackSettings>> options,
     IDatapackFactory datapackFactory,
     DatapackRegistry datapackRegistry,
-    ILogger<DatapackLoaderService> logger,
-    MinecraftData minecraftData)
+    ILogger<DatapackLoaderService> logger)
 {
     private readonly Dictionary<string, DatapackSettings> _datapackConfigs = options.Value;
 
@@ -34,7 +33,7 @@ public partial class DatapackLoaderService(
         {
             try
             {
-                settings.Validate(id, minecraftData);
+                settings.Validate(id);
 
                 LogProcessingDatapack(id, settings.Path, settings.DatapackType);
 
@@ -56,7 +55,6 @@ public partial class DatapackLoaderService(
             }
         }
 
-        PerDatapackConfigValidator.ValidateDocumentGeneratorSections(datapackRegistry.Values);
         ResolveOverrides();
     }
 

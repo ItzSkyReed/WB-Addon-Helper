@@ -21,7 +21,7 @@ public static class YamlConfigBootstrapper
     /// <exception cref="FileNotFoundException">Thrown when <paramref name="exitApplication"/> is false and the config file was newly generated.</exception>
     /// <example>
     /// <code>
-    /// YamlConfigBootstrapper.EnsureConfigExists("config.yaml", "BacapGenerator.default_config.yaml");
+    /// YamlConfigBootstrapper.EnsureConfigExists("config.yaml", "BacapGenerator.default_wb_config.yaml");
     /// </code>
     /// </example>
     public static void EnsureConfigExists(string targetFilePath, string resourceName, bool exitApplication = true)
