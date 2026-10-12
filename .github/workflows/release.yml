@@ -70,11 +70,11 @@ jobs:
         run: |
           mkdir -p ./release-binaries
           
-          cp ./dist/self-contained/BACAP_Addon_Helper${{ matrix.binary-ext }} \
-             ./release-binaries/BACAP_Addon_Helper-${{ matrix.rid }}${{ matrix.binary-ext }}
+          cp ./dist/self-contained/WB_Addon_Helper${{ matrix.binary-ext }} \
+             ./release-binaries/WB_Addon_Helper-${{ matrix.rid }}${{ matrix.binary-ext }}
           
-          cp ./dist/framework-dependent/BACAP_Addon_Helper${{ matrix.binary-ext }} \
-             ./release-binaries/BACAP_Addon_Helper-framework-dependent-${{ matrix.rid }}${{ matrix.binary-ext }}
+          cp ./dist/framework-dependent/WB_Addon_Helper${{ matrix.binary-ext }} \
+             ./release-binaries/WB_Addon_Helper-framework-dependent-${{ matrix.rid }}${{ matrix.binary-ext }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
@@ -129,35 +129,3 @@ jobs:
           body: ${{ steps.changelog.outputs.body }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-
-  publish-packages:
-    name: Build & Push NuGet Packages
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v7
-
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Pack and Push to GitHub Packages
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          
-          dotnet pack src/Core/Core.csproj \
-            -c Release \
-            -p:PackageVersion=$VERSION \
-            -o ./nupkgs
-          
-          dotnet pack src/BacapGenerator/BacapGenerator.csproj \
-            -c Release \
-            -p:PackageVersion=$VERSION \
-            -o ./nupkgs
-          
-          dotnet nuget push "./nupkgs/*.nupkg" \
-            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-            --api-key ${{ secrets.GITHUB_TOKEN }} \
-            --skip-duplicate
