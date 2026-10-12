@@ -8,14 +8,13 @@
         <Nullable>enable</Nullable>
 
         <!-- Final binary name: BACAP_Addon_Helper.exe -->
-        <AssemblyName>BACAP_Addon_Helper</AssemblyName>
+        <AssemblyName>WB_Addon_Helper</AssemblyName>
         <RootNamespace>UI</RootNamespace>
 
         <!-- Application metadata -->
-        <Product>BACAP Addon Helper</Product>
-        <Version>0.0.2+mc26.3</Version>
+        <Product>WB Addon Helper</Product>
         <Authors>ItzSkyReed</Authors>
-        <Description>Interactive CLI tool for managing and generating BACAP datapacks and language files.</Description>
+        <Description>Interactive CLI tool for managing and generating WB Addon for BACAP(ED).</Description>
 
         <!-- Code quality & analyzers -->
         <AnalysisLevel>latest-recommended</AnalysisLevel>
