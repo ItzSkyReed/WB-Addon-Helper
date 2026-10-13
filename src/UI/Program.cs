@@ -50,6 +50,7 @@ try
                 .AddUserConfiguration()
                 .AddMinecraftRegistries(context.Configuration)
                 .AddDatapackServices()
+                .AddWbAddonServices()
                 .AddUiActions();
         })
         .Build();
