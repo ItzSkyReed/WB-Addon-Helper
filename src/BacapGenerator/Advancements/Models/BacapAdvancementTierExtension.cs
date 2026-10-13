@@ -4,6 +4,21 @@ public static class BacapAdvancementTierExtension
 {
     extension(BacapAdvancementTier tier)
     {
+        public string MinecraftColor() =>
+            tier switch
+            {
+                BacapAdvancementTier.Task => "#green",
+                BacapAdvancementTier.Goal => "#75E1FF",
+                BacapAdvancementTier.Challenge => "dark_purple",
+                BacapAdvancementTier.SuperChallenge => "#FF2A2A",
+                BacapAdvancementTier.Root => "#CCCCCC",
+                BacapAdvancementTier.Milestone => "yellow",
+                BacapAdvancementTier.AdvancementLegend => "gold",
+                BacapAdvancementTier.Hidden => "light_purple",
+
+                _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, null)
+            };
+
         public string Color() =>
             tier switch
             {
