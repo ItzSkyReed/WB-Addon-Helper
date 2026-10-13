@@ -36,7 +36,7 @@ public sealed record BacapTab
 
     public static readonly BacapTab Adventure = new("adventure", "Adventure", "#FFD966");
     public static readonly BacapTab Animal = new("animal", "Animals", "#6AA84F");
-    public static readonly BacapTab Bacap = new("bacap", "B&C Advancements", "#F6B26B");
+    public static readonly BacapTab Bacap = new("bacap", "BlazeandCave's Advancements", "#F6B26B");
     public static readonly BacapTab Biomes = new("biomes", "Biomes", "#6AA84F");
     public static readonly BacapTab Building = new("building", "Building", "#E69138");
     public static readonly BacapTab Challenges = new("challenges", "Super Challenges", "#FF0003");
