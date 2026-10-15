@@ -1,4 +1,5 @@
 ﻿using BacapGenerator.Configuration;
+using Spectre.Console;
 using UI.Configuration;
 using UI.Interfaces;
 using UI.Styling;
@@ -6,23 +7,47 @@ using UI.Styling;
 namespace UI.Menus;
 
 /// <summary>
-/// Sub-menu for synchronizing loaded datapacks and language resource packs to local Minecraft installation folders.
+/// Sub-menu for synchronizing the WorldBorder (WB) addon datapack to the local Minecraft world folder.
 /// </summary>
-/// <param name="registry">The registry containing loaded datapack instances.</param>
 /// <param name="config">The user configuration providing synchronization target paths.</param>
+/// <param name="globalConfig">The global configuration containing the source path for the WB addon.</param>
 public sealed class SyncPacksMenu(UserConfig config, GlobalConfig globalConfig) : IMainMenuAction
 {
-    public string Title => "Sync Packs to Minecraft";
+    private const string TargetFolderName = "wb_addon";
 
     /// <summary>
-    /// Executes the synchronization workflow by verifying destinations, copying base and compatibility datapacks, and copying resource packs.
+    /// Gets the display title of the menu action.
+    /// </summary>
+    public string Title => "Sync WB Addon to Minecraft";
+
+    /// <summary>
+    /// Executes the synchronization workflow by verifying source and destination directories and copying the WB addon datapack.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
     public Task ExecuteAsync()
     {
         TuiTheme.RenderHeader("Sync WB Addon");
 
-        SyncDatapack(globalConfig.WbAddonPath, config.WorldDatapacksPath!);
+        var sourcePath = globalConfig.WbAddonPath;
+        var isSourceValid = !string.IsNullOrWhiteSpace(sourcePath) && Directory.Exists(sourcePath);
+
+        if (!config.IsWorldDatapacksPathValid || !isSourceValid)
+        {
+            TuiTheme.ShowError("Synchronization cannot proceed due to invalid directory paths.");
+            TuiTheme.Space();
+            RenderPathStatus("WB Addon Source", sourcePath, isSourceValid);
+            RenderPathStatus("WORLD_DATAPACKS_PATH", config.WorldDatapacksPath, config.IsWorldDatapacksPathValid);
+            TuiTheme.Space();
+            TuiTheme.ShowInfo("Please verify your configuration and ensure both directories exist.");
+            TuiTheme.WaitForKey();
+            return Task.CompletedTask;
+        }
+
+        RenderPathStatus("WB Addon Source", sourcePath, isSourceValid);
+        RenderPathStatus("Base World Target", config.WorldDatapacksPath, config.IsWorldDatapacksPathValid);
+        TuiTheme.Space();
+
+        SyncDatapack(sourcePath!, config.WorldDatapacksPath!);
 
         TuiTheme.ShowSuccess("Synchronization finished!");
         TuiTheme.WaitForKey();
@@ -31,18 +56,20 @@ public sealed class SyncPacksMenu(UserConfig config, GlobalConfig globalConfig) 
     }
 
     /// <summary>
-    /// Synchronizes valid source datapack directories into a destination world datapacks directory.
+    /// Synchronizes the WB addon directory into the destination world datapacks directory.
     /// </summary>
-    /// <param name="wbPath">The path to the worldborder addon folder.</param>
-    /// <param name="targetWorldDatapacksDir">The absolute destination directory for datapacks.</param>
+    /// <param name="wbPath">The source path to the WorldBorder addon folder.</param>
+    /// <param name="targetWorldDatapacksDir">The absolute destination directory for world datapacks.</param>
     private static void SyncDatapack(string wbPath, string targetWorldDatapacksDir)
     {
+        var destinationDirectory = Path.Combine(targetWorldDatapacksDir, TargetFolderName);
 
+        TuiTheme.RunProgress("Syncing WB Addon", [wbPath], source =>
+        {
+            CopyDirectory(source, destinationDirectory);
+        });
 
-        var destinationDirectory = Path.Combine(targetWorldDatapacksDir, "wb_addon");
-        CopyDirectory(wbPath, destinationDirectory);
-
-        TuiTheme.ShowSuccess($"Synchronized WB Addon datapack to {targetWorldDatapacksDir}.");
+        TuiTheme.ShowSuccess($"Synchronized WB Addon to {destinationDirectory}.");
     }
 
     /// <summary>
@@ -52,7 +79,7 @@ public sealed class SyncPacksMenu(UserConfig config, GlobalConfig globalConfig) 
     /// <param name="destinationDirectory">The destination directory path to completely recreate and populate.</param>
     /// <exception cref="DirectoryNotFoundException">Thrown when the source directory does not exist.</exception>
     /// <exception cref="IOException">Thrown when an I/O error occurs during directory deletion or file transfer.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when caller does not have the required permission to access or delete files.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission to access or delete files.</exception>
     private static void CopyDirectory(string sourceDirectory, string destinationDirectory)
     {
         if (!Directory.Exists(sourceDirectory))
@@ -80,5 +107,36 @@ public sealed class SyncPacksMenu(UserConfig config, GlobalConfig globalConfig) 
 
             File.Copy(file, destinationFilePath, overwrite: true);
         }
+    }
+
+    /// <summary>
+    /// Displays a standardized status line for an environment or configuration path.
+    /// </summary>
+    /// <param name="label">The human-readable name of the setting.</param>
+    /// <param name="path">The resolved directory path.</param>
+    /// <param name="isValid">A value indicating whether the directory exists and is usable.</param>
+    /// <param name="isOptional">Indicates whether this path is optional under current conditions.</param>
+    private static void RenderPathStatus(string label, string? path, bool isValid, bool isOptional = false)
+    {
+        var escapedLabel = Markup.Escape(label);
+        var escapedPath = path is not null ? Markup.Escape(path) : null;
+
+        if (isValid)
+        {
+            AnsiConsole.MarkupLine($"  [Grey84]{escapedLabel}:[/] [green]{escapedPath}[/]");
+            return;
+        }
+
+        if (isOptional && string.IsNullOrWhiteSpace(path))
+        {
+            AnsiConsole.MarkupLine($"  [Grey84]{escapedLabel}:[/] [grey]not configured (optional)[/]");
+            return;
+        }
+
+        var displayValue = string.IsNullOrWhiteSpace(escapedPath)
+            ? "not configured"
+            : $"directory not found ({escapedPath})";
+
+        AnsiConsole.MarkupLine($"  [Grey84]{escapedLabel}:[/] [red]{displayValue}[/]");
     }
 }
