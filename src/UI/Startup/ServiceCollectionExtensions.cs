@@ -79,10 +79,10 @@ public static class ServiceCollectionExtensions
         /// <returns>The service collection instance for method chaining.</returns>
         public IServiceCollection AddDatapackServices()
         {
+            // Core state & factories
             services.AddSingleton<DatapackRegistry>();
-            services.AddTransient<IDatapackFactory, DatapackFactory>();
+            services.AddSingleton<IDatapackFactory, DatapackFactory>();
             services.AddTransient<DatapackLoaderService>();
-
             return services;
         }
 

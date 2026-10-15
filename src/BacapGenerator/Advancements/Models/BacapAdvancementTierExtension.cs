@@ -7,7 +7,7 @@ public static class BacapAdvancementTierExtension
         public string MinecraftColor() =>
             tier switch
             {
-                BacapAdvancementTier.Task => "#green",
+                BacapAdvancementTier.Task => "green",
                 BacapAdvancementTier.Goal => "#75E1FF",
                 BacapAdvancementTier.Challenge => "dark_purple",
                 BacapAdvancementTier.SuperChallenge => "#FF2A2A",

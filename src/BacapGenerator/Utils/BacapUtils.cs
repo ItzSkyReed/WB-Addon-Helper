@@ -5,7 +5,6 @@ namespace BacapGenerator.Utils;
 
 public static class BacapUtils
 {
-
     /// <summary>
     /// Extracts the tab segment (first path component) from a resource location string.
     /// </summary>
@@ -88,6 +87,7 @@ public static class BacapUtils
 
     /// <summary>
     /// Converts a string into a lower_snake_case slug, stripping punctuation/symbols
+    /// (while collapsing word-internal apostrophes like "Hanna's" -> "hannas")
     /// and collapsing consecutive separators into a single underscore.
     /// </summary>
     /// <param name="input">The input string to slugify.</param>
@@ -98,8 +98,8 @@ public static class BacapUtils
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="input"/> is <see langword="null"/>.</exception>
     /// <example>
     /// <code>
-    /// string result1 = StringSlugifier.ToSnakeCaseSlug("Hello World"); // "hello_world"
-    /// string result2 = StringSlugifier.ToSnakeCaseSlug("Hello is this.. The world?"); // "hello_is_this_the_world"
+    /// string result1 = BacapUtils.ToSnakeCaseSlug("Hello World"); // "hello_world"
+    /// string result2 = BacapUtils.ToSnakeCaseSlug("Hanna's Day"); // "hannas_day"
     /// </code>
     /// </example>
     public static string ToSnakeCaseSlug(string input)
@@ -109,7 +109,6 @@ public static class BacapUtils
         if (input.Length == 0)
             return string.Empty;
 
-        // Use stack allocation for small/medium strings to avoid GC pressure, falling back to heap array for large strings.
         const int maxStackLimit = 64;
 
         var buffer = input.Length <= maxStackLimit
@@ -126,6 +125,10 @@ public static class BacapUtils
                 buffer[writeIndex++] = char.ToLower(c, CultureInfo.InvariantCulture);
                 lastWasSeparator = false;
             }
+            else if (c is '\'' or '’' && !lastWasSeparator)
+            {
+                // Ignore apostrophes inside words.
+            }
             else if (!lastWasSeparator)
             {
                 buffer[writeIndex++] = '_';
@@ -137,8 +140,6 @@ public static class BacapUtils
         if (writeIndex > 0 && buffer[writeIndex - 1] == '_')
             writeIndex--;
 
-        var result = writeIndex == 0 ? string.Empty : new string(buffer[..writeIndex]);
-
-        return result;
+        return writeIndex == 0 ? string.Empty : new string(buffer[..writeIndex]);
     }
 }

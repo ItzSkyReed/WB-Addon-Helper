@@ -31,17 +31,12 @@ public static class DatapackResolver
             .Select(a => a.McPath)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var overrideCount = 0;
-
         foreach (var adv in childPack.Advancements)
         {
             if (!parentAdvancementPaths.Contains(adv.McPath))
                 continue;
 
             adv.IsOverride = true;
-            overrideCount++;
         }
-
-        Console.WriteLine($"Marked {overrideCount} advancement(s) in '{childPack.Id}' as overrides of '{parentPack.Id}'.");
     }
 }

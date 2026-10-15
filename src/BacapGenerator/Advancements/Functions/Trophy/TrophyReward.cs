@@ -197,22 +197,19 @@ public record TrophyReward(ItemStack Item, TrophyDeliveryType DeliveryType = Tro
         item.Components.Set(new CustomNameComponent(customName));
 
         // Set custom_model_data
-        var customModelData = new CustomModelDataComponent(Strings: [$"{advancement.Datapack.Settings.MainNamespace}:{BacapUtils.ToSnakeCaseSlug(titleKey)}"]);
+        var customModelData = new CustomModelDataComponent(
+            Strings: [$"{advancement.Datapack.Settings.MainNamespace}:{BacapUtils.ToSnakeCaseSlug(titleKey)}"]);
         item.Components.Set(customModelData);
 
         var trophy = new TrophyReward(item, deliveryType);
-
-        // Generate Standard BACAP Lore
-        trophy.SetStandardLore(descriptionLines, advancement);
-
-        // Apply extra components
+        // Apply extra components first
         if (extraSetComponents is not null)
-        {
             foreach (var setComponent in extraSetComponents)
-            {
                 item.Components.Set(setComponent);
-            }
-        }
+
+        // Generate Standard BACAP Lore (if caller didn't explicitly supply a custom LoreComponent, or if descriptionLines were provided)
+        if (descriptionLines is not null || !item.Components.Has<LoreComponent>())
+            trophy.SetStandardLore(descriptionLines, advancement);
 
         // Process explicitly removed components
         if (extraRemoveComponents is null)

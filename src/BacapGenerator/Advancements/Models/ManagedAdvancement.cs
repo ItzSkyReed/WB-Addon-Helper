@@ -12,6 +12,8 @@ namespace BacapGenerator.Advancements.Models;
 public abstract class ManagedAdvancement
 {
     private FileInfo _file;
+    private string? _datapackRelativePath;
+    private string? _mcPath;
 
     /// <summary>
     /// Gets the datapack that owns this advancement file.
@@ -20,9 +22,10 @@ public abstract class ManagedAdvancement
 
     /// <summary>
     /// Gets the relative file path within the datapack data directory.
-    /// Computed once on first access and cached.
+    /// Computed on access and invalidated whenever <see cref="File"/> or <see cref="McPath"/> changes.
     /// </summary>
-    public string DatapackRelativePath => field ??= Path.GetRelativePath(Datapack.DatapackDataPath.FullName, _file.FullName);
+    public string DatapackRelativePath =>
+        _datapackRelativePath ??= Path.GetRelativePath(Datapack.DatapackDataPath.FullName, _file.FullName);
 
     /// <summary>
     /// Gets or sets the Minecraft identifier path (e.g., <c>namespace:folder/name</c>).
@@ -31,18 +34,20 @@ public abstract class ManagedAdvancement
     [PublicAPI]
     public virtual string McPath
     {
-        get => field ??= MinecraftUtils.ToMinecraftPath(DatapackRelativePath);
+        get => _mcPath ??= MinecraftUtils.ToMinecraftPath(DatapackRelativePath);
         set
         {
             EnsureMutable();
-            if (field == value)
+            if (_mcPath == value)
                 return;
-
-            field = value;
 
             // Resolve the new physical path based on the new McPath
             var physicalPath = MinecraftUtils.ResolvePhysicalPath(Datapack.DatapackDataPath.ToString(), "advancement", value);
-            File = new FileInfo(physicalPath);
+            _file = new FileInfo(physicalPath);
+
+            // Update McPath and invalidate cached relative path
+            _mcPath = value;
+            _datapackRelativePath = null;
         }
     }
 
@@ -63,7 +68,7 @@ public abstract class ManagedAdvancement
     public FileInfo OriginalFile { get; internal set; }
 
     /// <summary>
-    /// Gets or sets the current target file path.
+    /// Gets or sets the current target file path, invalidating cached relative and Minecraft paths.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">Thrown when modifying a read-only instance.</exception>
@@ -75,7 +80,13 @@ public abstract class ManagedAdvancement
         {
             EnsureMutable();
             ArgumentNullException.ThrowIfNull(value);
+
+            if (string.Equals(_file.FullName, value.FullName, StringComparison.OrdinalIgnoreCase))
+                return;
+
             _file = value;
+            _datapackRelativePath = null;
+            _mcPath = null;
         }
     }
 

@@ -56,8 +56,7 @@ public sealed class ItemRewardFunction : BaseFunction
         RewardItems = [];
         Update();
     }
-
-    /// <summary>
+/// <summary>
     /// Generates or updates the item reward commands (/give @s) and local announcements (/tellraw @s).
     /// Preserves any unrelated custom commands (like comments or particles) in the file.
     /// </summary>
@@ -68,30 +67,20 @@ public sealed class ItemRewardFunction : BaseFunction
         var linesToRemove = new List<IMcFunctionLine>();
         var insertIndex = -1;
 
-        // Identify the existing item reward block
+        // Identify the existing item reward block via strict AST pattern matching
         for (var i = 0; i < Function.Lines.Count; i++)
         {
             var line = Function.Lines[i];
-            var isRewardBlockLine = false;
-
-            switch (line)
+            var isRewardBlockLine = line switch
             {
-                case ExecutableLine { Command: GiveCommand giveCmd } when
-                    giveCmd.Target == Selector.SelectedPlayer:
-                    isRewardBlockLine = true;
-                    break;
+                ExecutableLine { Command: GiveCommand giveCmd }
+                    when giveCmd.Target == Selector.SelectedPlayer => true,
 
-                case ExecutableLine { Command: TellrawCommand tellCmd } when
-                    tellCmd.Target == Selector.SelectedPlayer:
-                {
-                    var json = tellCmd.Message.ToJson();
+                ExecutableLine { Command: TellrawCommand tellCmd }
+                    when tellCmd.Target == Selector.SelectedPlayer && IsGeneratedItemMessage(tellCmd.Message) => true,
 
-                    if (json.Contains(" +") && json.Contains("green"))
-                        isRewardBlockLine = true;
-
-                    break;
-                }
-            }
+                _ => false
+            };
 
             if (!isRewardBlockLine)
                 continue;
@@ -107,7 +96,7 @@ public sealed class ItemRewardFunction : BaseFunction
             Function.Lines.Remove(line);
 
         // Generate new lines for the updated items
-        var newLines = new List<IMcFunctionLine>();
+        var newLines = new List<IMcFunctionLine>(RewardItems.Count * 2);
         foreach (var item in RewardItems)
         {
             var giveCmd = new GiveCommand(Selector.SelectedPlayer, item);
@@ -119,10 +108,8 @@ public sealed class ItemRewardFunction : BaseFunction
 
         // Insert the new lines back into the AST
         if (insertIndex == -1)
-            // If there were no items before, append to the end of the file
             Function.Lines.AddRange(newLines);
         else
-            // Insert exactly where the old block used to be
             Function.Lines.InsertRange(insertIndex, newLines);
     }
 
@@ -154,6 +141,35 @@ public sealed class ItemRewardFunction : BaseFunction
         }
 
         RewardItems = parsedItems;
+    }
+
+    /// <summary>
+    /// Strictly verifies whether a <see cref="TextComponent"/> matches the AST structure
+    /// produced by <see cref="CreateItemMessage"/>:
+    /// <c>{"color":"green","text":" +&lt;int&gt; ","extra":[{"translate":"..."}]}</c>.
+    /// </summary>
+    /// <param name="component">The root message component from a tellraw command.</param>
+    /// <returns><see langword="true"/> if the component is an auto-generated item reward message; otherwise, <see langword="false"/>.</returns>
+    private static bool IsGeneratedItemMessage(TextComponent? component)
+    {
+        return component is PlainTextComponent
+        {
+            Style.Color: "green",
+            Text: var text,
+            Extra: [TranslatableComponent { Translate.Length: > 0 }]
+        } && IsPlusAmountPrefix(text);
+    }
+
+    /// <summary>
+    /// Checks if the string matches the exact <c>" +&lt;digits&gt; "</c> format (e.g., <c>" +16 "</c>).
+    /// </summary>
+    private static bool IsPlusAmountPrefix(ReadOnlySpan<char> text)
+    {
+        if (!text.StartsWith(" +") || !text.EndsWith(" "))
+            return false;
+
+        var numberSlice = text[2..^1];
+        return !numberSlice.IsEmpty && int.TryParse(numberSlice, out var count) && count > 0;
     }
 
     /// <summary>

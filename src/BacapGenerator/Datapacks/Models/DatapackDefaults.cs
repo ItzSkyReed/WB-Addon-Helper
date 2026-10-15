@@ -190,7 +190,6 @@ public static class DatapackDefaults
         DescriptionColor = "green"
     };
 
-
     private static readonly BacapTierProfile RootTierProfile = new()
     {
         Frame = AdvancementFrame.Task,

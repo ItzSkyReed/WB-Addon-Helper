@@ -3,7 +3,6 @@ using Spectre.Console;
 using UI.Interfaces;
 using UI.Styling;
 using WbGenerator.Exceptions;
-using WbGenerator.Services;
 using WbGenerator.Services.Interfaces;
 
 namespace UI.Menus;
