@@ -1,7 +1,7 @@
-﻿using BacapGenerator.Common;
+﻿using System.Collections.Frozen;
+using BacapGenerator.Common;
 using BacapGenerator.Configuration;
 using BacapGenerator.Configuration.Exceptions;
-using Core.Registries;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 
@@ -16,6 +16,7 @@ public sealed class DatapackSettings
     /// <summary>
     /// Gets the filesystem path to the root folder of the datapack.
     /// </summary>
+    [PublicAPI]
     [ConfigurationKeyName("path")]
     public string Path { get; init; } = string.Empty;
 
@@ -35,6 +36,7 @@ public sealed class DatapackSettings
     /// Gets the raw string representation of the datapack type as defined in config.yaml.
     /// </summary>
     [ConfigurationKeyName("type")]
+    [PublicAPI]
     public string? RawType { get; init; }
 
     /// <summary>
@@ -53,6 +55,31 @@ public sealed class DatapackSettings
     [PublicAPI]
     [ConfigurationKeyName("parent_datapack_id")]
     public string? ParentDatapackId { get; init; }
+
+    /// <summary>
+    /// Gets the raw configuration dictionary mapping tab folder names to milestone advancement paths.
+    /// Used internally because <see cref="ConfigurationBinder"/> only supports primitive, enum, or string dictionary keys.
+    /// </summary>
+    [PublicAPI]
+    [ConfigurationKeyName("milestone_mc_paths")]
+    public Dictionary<string, string>? RawMilestoneMcPaths { get; init; }
+
+    /// <summary>
+    /// Gets the mapping of advancement tabs to their milestone advancement Minecraft paths.
+    /// </summary>
+    [PublicAPI]
+    public FrozenDictionary<BacapTab, string> MilestoneMcPaths =>
+        field ??= RawMilestoneMcPaths?.ToFrozenDictionary(
+                      kvp => BacapTab.FromFolderName(kvp.Key),
+                      kvp => kvp.Value)
+                  ?? FrozenDictionary<BacapTab, string>.Empty;
+
+    /// <summary>
+    /// Gets the Minecraft resource path for the advancement legend reward.
+    /// </summary>
+    [PublicAPI]
+    [ConfigurationKeyName("advancement_legend_mc_path")]
+    public string? AdvancementLegendMcPath { get; init; }
 
     [PublicAPI]
     [ConfigurationKeyName("fanpacks_namespace")]

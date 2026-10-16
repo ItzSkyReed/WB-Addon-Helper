@@ -47,7 +47,6 @@
 
 
     <ItemGroup>
-        <PackageReference Include="dotenv.net" Version="4.2.0" />
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
