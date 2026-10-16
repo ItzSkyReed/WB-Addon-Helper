@@ -19,10 +19,12 @@ var isVerbose = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase)
                 || args.Contains("-v", StringComparer.OrdinalIgnoreCase)
                 || args.Contains("--debug", StringComparer.OrdinalIgnoreCase);
 
-// Extract custom config path if passed via CLI, otherwise fallback to default
+// Extract custom config and env paths if passed via CLI, otherwise fallback to defaults
 var configPath = GetCliOption(args, "--config", "-c") ?? defaultConfigFileName;
 var resolvedConfigPath = Path.GetFullPath(configPath);
 
+var envPath = GetCliOption(args, "--env", "-e") ?? ".env";
+var resolvedEnvPath = Path.GetFullPath(envPath);
 try
 {
     // Ensure parent directory exists if a path with subfolders was specified
@@ -47,7 +49,7 @@ try
         .ConfigureServices((context, services) =>
         {
             services.AddApplicationConfiguration(context.Configuration)
-                .AddUserConfiguration()
+                .AddUserConfiguration(resolvedEnvPath)
                 .AddMinecraftRegistries(context.Configuration)
                 .AddDatapackServices()
                 .AddWbAddonServices()

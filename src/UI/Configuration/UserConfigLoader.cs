@@ -1,4 +1,6 @@
-﻿namespace UI.Configuration;
+﻿using System.Text;
+
+namespace UI.Configuration;
 
 /// <summary>
 /// Provides functionality to load and construct <see cref="UserConfig"/> from system environment variables and an optional .env file.
@@ -23,19 +25,28 @@ public static class UserConfigLoader
     }
 
     /// <summary>
-    /// Parses a .env file natively, handling UTF-8 BOM, comments, quotes, and Windows backslashes safely.
+    /// Parses a .env file natively, handling UTF-8/UTF-16 BOM, comments, quotes, and Windows backslashes safely.
     /// </summary>
+    /// <param name="envFilePath">The path to the .env file to parse.</param>
+    /// <returns>A case-insensitive dictionary of parsed key-value pairs, or <see langword="null"/> if the file does not exist.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="envFilePath"/> is null or empty.</exception>
     private static Dictionary<string, string>? ParseEnvFile(string envFilePath)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(envFilePath);
+
         if (!File.Exists(envFilePath))
             return null;
 
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // File.ReadLines automatically strips UTF-8 BOM and reads lazily
-        foreach (var rawLine in File.ReadLines(envFilePath))
+        // StreamReader handles standard BOMs automatically
+        using var reader = new StreamReader(envFilePath, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+
+        while (reader.ReadLine() is { } rawLine)
         {
+            // Fallback trim for any leftover BOMs just in case
             var line = rawLine.AsSpan().Trim().TrimStart('\uFEFF');
+
             if (line.IsEmpty || line[0] == '#')
                 continue;
 
@@ -46,7 +57,7 @@ public static class UserConfigLoader
             var key = line[..eqIndex].Trim();
             var value = line[(eqIndex + 1)..].Trim();
 
-            // Strip surrounding quotes without corrupting Windows backslashes
+            // Strip surrounding quotes safely
             if (value.Length >= 2 &&
                 ((value[0] == '"' && value[^1] == '"') || (value[0] == '\'' && value[^1] == '\'')))
             {
@@ -59,21 +70,20 @@ public static class UserConfigLoader
         return result;
     }
 
+    /// <summary>
+    /// Resolves the final path by checking the OS environment first, then falling back to the .env file dictionary, and expanding any variables.
+    /// </summary>
+    /// <param name="key">The environment variable key to resolve.</param>
+    /// <param name="fileEnv">The parsed dictionary from the .env file.</param>
+    /// <returns>The fully expanded and resolved absolute path, or <see langword="null"/> if not found.</returns>
     private static string? ResolvePath(string key, Dictionary<string, string>? fileEnv)
     {
         // Check standard OS environment variable
         var rawValue = Environment.GetEnvironmentVariable(key);
 
-        // Fallback for cmd.exe `for /f` bug when reading UTF-8 with BOM on line 1 (prepends "\uFEFF" or "ï»¿" to the first variable name)
-        if (string.IsNullOrWhiteSpace(rawValue))
-        {
-            rawValue = Environment.GetEnvironmentVariable("\uFEFF" + key)
-                       ?? Environment.GetEnvironmentVariable("ï»¿" + key);
-        }
-
         // Fall back to parsed .env file entries
-        if (string.IsNullOrWhiteSpace(rawValue) && fileEnv != null && fileEnv.TryGetValue(key, out var fileValue))
-            rawValue = fileValue;
+        if (string.IsNullOrWhiteSpace(rawValue) && fileEnv != null)
+            fileEnv.TryGetValue(key, out rawValue);
 
         if (string.IsNullOrWhiteSpace(rawValue))
             return null;

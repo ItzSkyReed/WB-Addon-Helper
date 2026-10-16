@@ -87,20 +87,14 @@ public static class ServiceCollectionExtensions
         }
 
         /// <summary>
-        /// Loads user-specific settings from environment variables or an optional .env file and registers them as a singleton.
+        /// Registers <see cref="UserConfig"/> in the dependency injection container by loading environment variables and the specified .env file.
         /// </summary>
-        /// <param name="envFilePath">The file path to the environment file. Defaults to <c>".env"</c>.</param>
-        /// <returns>The service collection instance for method chaining.</returns>
-        /// <example>
-        /// <code>
-        /// services.AddUserConfiguration();
-        /// </code>
-        /// </example>
+        /// <param name="envFilePath">The resolved file path to the environment file.</param>
+        /// <returns>The same <see cref="IServiceCollection"/> instance for chaining.</returns>
         public IServiceCollection AddUserConfiguration(string envFilePath = ".env")
         {
             var userConfig = UserConfigLoader.Load(envFilePath);
             services.AddSingleton(userConfig);
-
             return services;
         }
 
