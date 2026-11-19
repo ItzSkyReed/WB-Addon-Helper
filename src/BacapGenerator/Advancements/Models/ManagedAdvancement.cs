@@ -41,8 +41,13 @@ public abstract class ManagedAdvancement
             if (_mcPath == value)
                 return;
 
-            // Resolve the new physical path based on the new McPath
-            var physicalPath = MinecraftUtils.ResolvePhysicalPath(Datapack.DatapackDataPath.ToString(), "advancement", value);
+            var extension = string.IsNullOrEmpty(_file.Extension) ? ".json" : _file.Extension;
+            var physicalPath = MinecraftUtils.BuildPhysicalPath(
+                Datapack.DatapackDataPath.FullName,
+                "advancement",
+                value,
+                extension);
+
             _file = new FileInfo(physicalPath);
 
             // Update McPath and invalidate cached relative path

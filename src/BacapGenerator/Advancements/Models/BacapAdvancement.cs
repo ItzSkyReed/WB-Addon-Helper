@@ -111,7 +111,8 @@ public class BacapAdvancement : ValidAdvancement
 
     /// <summary>
     /// Gets or sets the underlying core <see cref="Advancement"/> data model.
-    /// Mutating this property validates the advancement state and synchronizes attached function files.
+    /// Mutating this property validates the advancement state, enforces the resolved tier's visual profile,
+    /// and synchronizes both the advancement file path and attached function files.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown when setting a <see langword="null"/> value.</exception>
     /// <exception cref="ArgumentException">Thrown when the new state fails BACAP tier validation.</exception>
@@ -128,6 +129,18 @@ public class BacapAdvancement : ValidAdvancement
                 throw new ArgumentException($"Cannot update advancement: {error}", nameof(value));
             }
 
+            // Ensure Display (color, frame, hidden) always matches the resolved tier profile
+            value = ApplyTierDisplayProfile(value, newTier);
+
+            // If the tab changed (via Tab, Parent, or Tier mutation), update the advancement's own McPath & File.
+            // Overrides must keep their original McPath so they continue overriding the target advancement.
+            if (newTab != _tab && !IsOverride)
+                base.McPath = MinecraftUtils.ReplaceFirstPathSegment(base.McPath, newTab.FolderName);
+
+            // If the tab changed (via Tab, Parent, or Tier mutation), update the advancement's own McPath & File
+            if (newTab != _tab)
+                base.McPath = MinecraftUtils.ReplaceFirstPathSegment(base.McPath, newTab.FolderName);
+
             _tab = newTab;
             _tier = newTier;
             base.Advancement = value;
@@ -137,7 +150,7 @@ public class BacapAdvancement : ValidAdvancement
         }
     }
 
-/// <summary>
+    /// <summary>
     /// Gets the display configuration guaranteed to exist for playable BACAP advancements.
     /// </summary>
     [PublicAPI]
@@ -263,16 +276,16 @@ public class BacapAdvancement : ValidAdvancement
         get => _tier;
         set
         {
-            if (value == _tier)
-                return;
-
             if (value == BacapAdvancementTier.Root)
                 throw new ArgumentException("Creating Root advancements is not allowed.", nameof(value));
 
             var tierProfile = value.GetTierProfile();
-
-            // Resolve rewards function path if the new tier mandates a specific tab
             var targetTab = tierProfile.RequiredTab ?? Tab;
+
+            // Only short-circuit if tier, tab, and visual display properties are already in sync
+            if (value == _tier && targetTab == Tab && IsDisplayMatchingProfile(Display, tierProfile))
+                return;
+
             var updatedRewards = Advancement.Rewards;
 
             if (targetTab != Tab && !string.IsNullOrWhiteSpace(updatedRewards?.Function))
@@ -281,27 +294,68 @@ public class BacapAdvancement : ValidAdvancement
                 updatedRewards = updatedRewards with { Function = updatedFunction };
             }
 
-            var currentDescription = Display.Description ?? new PlainTextComponent(string.Empty);
-            var updatedDescription = currentDescription with
+            // Apply Display tier profile first so TryValidate in Advancement.set resolves the new tier
+            Advancement = ApplyTierDisplayProfile(Advancement, value) with
             {
-                Style = (currentDescription.Style ?? new TextStyle()) with
-                {
-                    Color = tierProfile.DescriptionColor
-                }
-            };
-
-            // Atomically update state via Display accessor
-            Advancement = Advancement with
-            {
-                Display = Display with
-                {
-                    Hidden = tierProfile.IsHidden,
-                    Frame = tierProfile.Frame ?? Display.Frame,
-                    Description = updatedDescription
-                },
                 Rewards = updatedRewards
             };
         }
+    }
+
+    /// <summary>
+    /// Checks whether the given display configuration already matches the target tier profile.
+    /// </summary>
+    /// <param name="display">The advancement display configuration to inspect.</param>
+    /// <param name="profile">The expected tier profile.</param>
+    /// <returns><see langword="true"/> if hidden state, frame, and description color match the profile; otherwise, <see langword="false"/>.</returns>
+    private static bool IsDisplayMatchingProfile(AdvancementDisplay? display, BacapTierProfile profile)
+    {
+        if (display is null)
+            return false;
+
+        var currentColor = display.Description?.Style?.Color;
+        var expectedFrame = profile.Frame ?? display.Frame;
+
+        return display.Hidden == profile.IsHidden &&
+               display.Frame == expectedFrame &&
+               string.Equals(currentColor, profile.DescriptionColor, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Applies the visual metadata defined by the specified tier profile (description color, frame, and visibility)
+    /// to the advancement display configuration if it does not already match.
+    /// </summary>
+    /// <param name="advancement">The target advancement instance to transform.</param>
+    /// <param name="targetTier">The tier whose profile styles should be applied.</param>
+    /// <returns>
+    /// A modified copy of <paramref name="advancement"/> with updated display settings,
+    /// or the original instance if the display already matches the tier profile.
+    /// </returns>
+    private static Advancement ApplyTierDisplayProfile(Advancement advancement, BacapAdvancementTier targetTier)
+    {
+        var tierProfile = targetTier.GetTierProfile();
+
+        if (IsDisplayMatchingProfile(advancement.Display, tierProfile))
+            return advancement;
+
+        var currentDescription = advancement.Display?.Description ?? new PlainTextComponent(string.Empty);
+        var updatedDescription = currentDescription with
+        {
+            Style = (currentDescription.Style ?? new TextStyle()) with
+            {
+                Color = tierProfile.DescriptionColor
+            }
+        };
+
+        return advancement with
+        {
+            Display = (advancement.Display ?? new AdvancementDisplay()) with
+            {
+                Hidden = tierProfile.IsHidden,
+                Frame = tierProfile.Frame ?? advancement.Display!.Frame,
+                Description = updatedDescription
+            }
+        };
     }
 
     /// <summary>
@@ -435,6 +489,56 @@ public class BacapAdvancement : ValidAdvancement
                 Rewards = updatedRewards
             };
         }
+    }
+
+    /// <summary>
+    /// Sets the parent advancement using a resolved <see cref="ValidAdvancement"/> instance,
+    /// extracting the target <see cref="BacapTab"/> from the parent's reward function path
+    /// (or falling back to its <see cref="ManagedAdvancement.McPath"/> if no reward function is present).
+    /// </summary>
+    /// <param name="parent">The resolved parent advancement.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parent"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when a valid BACAP tab cannot be determined from the parent's reward path or McPath.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">Thrown when attempting to modify a read-only instance.</exception>
+    /// <example>
+    /// <code>
+    /// advancement.SetParent(parentAdvancement);
+    /// </code>
+    /// </example>
+    [PublicAPI]
+    public void SetParent(ValidAdvancement parent)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+
+        var rewardPath = parent.Advancement.Rewards?.Function;
+
+        // Primary: extract tab from parent's reward function path (reliable for vanilla overrides)
+        // Fallback: extract tab from parent's McPath (e.g. technical roots without rewards)
+        if (!BacapUtils.TryExtractTabFromPath(rewardPath, out var newTab) &&
+            !BacapTab.TryExtractTabFromMcPath(parent.McPath, out newTab))
+        {
+            throw new ArgumentException(
+                $"Cannot determine a valid BACAP tab from parent '{parent.McPath}' (reward: '{rewardPath ?? "none"}').",
+                nameof(parent));
+        }
+
+        if (Advancement.Parent == parent.McPath && _tab == newTab)
+            return;
+
+        var updatedRewards = Advancement.Rewards;
+        if (!string.IsNullOrWhiteSpace(updatedRewards?.Function))
+        {
+            var updatedFunction = MinecraftUtils.ReplaceFirstPathSegment(updatedRewards.Function, newTab.FolderName);
+            updatedRewards = updatedRewards with { Function = updatedFunction };
+        }
+
+        Advancement = Advancement with
+        {
+            Parent = parent.McPath,
+            Rewards = updatedRewards
+        };
     }
 
     [PublicAPI]

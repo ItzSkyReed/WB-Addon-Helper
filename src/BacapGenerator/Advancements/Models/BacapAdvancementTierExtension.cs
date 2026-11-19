@@ -4,7 +4,7 @@ public static class BacapAdvancementTierExtension
 {
     extension(BacapAdvancementTier tier)
     {
-        public string MinecraftColor() =>
+        public string MinecraftColor =>
             tier switch
             {
                 BacapAdvancementTier.Task => "green",
@@ -19,7 +19,7 @@ public static class BacapAdvancementTierExtension
                 _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, null)
             };
 
-        public string Color() =>
+        public string Color =>
             tier switch
             {
                 BacapAdvancementTier.Task => "#55FF55",
@@ -34,7 +34,7 @@ public static class BacapAdvancementTierExtension
                 _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, null)
             };
 
-        public string TechnicalName() =>
+        public string TechnicalName =>
             tier switch
             {
                 BacapAdvancementTier.Task => "task",
@@ -49,7 +49,7 @@ public static class BacapAdvancementTierExtension
                 _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, null)
             };
 
-        public string DisplayName() =>
+        public string DisplayName =>
             tier switch
             {
                 BacapAdvancementTier.Task => "Task",

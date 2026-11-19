@@ -92,7 +92,7 @@ public record TrophyReward(ItemStack Item, TrophyDeliveryType DeliveryType = Tro
         SetStandardLore(
             descriptionLines,
             advancementTitle: advancement.TitleText,
-            advancementColor: advancement.Tier.MinecraftColor(),
+            advancementColor: advancement.Tier.MinecraftColor,
             descriptionColor: TitleColor);
     }
 

@@ -36,7 +36,7 @@ public sealed class MacroFunction : BaseFunction
 
         var functionArguments = Snbt.Compound()
             .Put("adv_id", advId)
-            .Put("reward_id", rewardId).Put((string)"tier", tier.TechnicalName())
+            .Put("reward_id", rewardId).Put((string)"tier", tier.TechnicalName)
             .Build();
 
         var newCommand = new FunctionCommand(BacapAdvancement.Datapack.Settings.MacroCommandName, functionArguments);

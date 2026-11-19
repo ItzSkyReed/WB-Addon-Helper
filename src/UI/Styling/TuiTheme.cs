@@ -12,15 +12,24 @@ public static class TuiTheme
     private static readonly QKeyCancellableConsole CancellableConsole = new(AnsiConsole.Console);
 
     /// <summary>
-    /// Renders a standardized selection prompt that returns <see langword="null"/> if aborted via the Escape key.
+    /// Renders a standardized selection prompt for reference types that returns <see langword="null"/>
+    /// if the selection was aborted via the Q key.
     /// </summary>
-    /// <typeparam name="T">The type of selectable elements.</typeparam>
+    /// <typeparam name="T">The reference type of selectable elements.</typeparam>
     /// <param name="title">The title displayed above the options (supports Spectre.Console markup).</param>
-    /// <param name="choices">The list of available options.</param>
+    /// <param name="choices">The collection of available options.</param>
     /// <param name="displaySelector">An optional projection function for custom item labels.</param>
     /// <returns>
-    /// The chosen item of type <typeparamref name="T"/>, or <see langword="null"/> if the selection was aborted.
+    /// The selected item of type <typeparamref name="T"/>, or <see langword="null"/> if the prompt was cancelled.
     /// </returns>
+    /// <example>
+    /// <code>
+    /// var selectedUser = await TuiTheme.PromptSelectionOrDefaultAsync(
+    ///     "Choose user:",
+    ///     users,
+    ///     u => u.Name);
+    /// </code>
+    /// </example>
     public static async Task<T?> PromptSelectionOrDefaultAsync<T>(
         string title,
         IEnumerable<T> choices,
@@ -32,9 +41,50 @@ public static class TuiTheme
             .AddChoices(choices);
 
         if (displaySelector != null)
-        {
             prompt.UseConverter(displaySelector);
+
+        try
+        {
+            return await CancellableConsole.PromptAsync(prompt);
         }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Renders a standardized selection prompt for value types (e.g., structs, enums) that returns
+    /// <see langword="null"/> if the selection was aborted via the Q key.
+    /// </summary>
+    /// <typeparam name="T">The value type of selectable elements.</typeparam>
+    /// <param name="title">The title displayed above the options (supports Spectre.Console markup).</param>
+    /// <param name="choices">The collection of available options.</param>
+    /// <param name="displaySelector">An optional projection function for custom item labels.</param>
+    /// <returns>
+    /// The selected value of type <typeparamref name="T"/> wrapped in <see cref="Nullable{T}"/>,
+    /// or <see langword="null"/> if the prompt was cancelled.
+    /// </returns>
+    /// <example>
+    /// <code>
+    /// var option = await TuiTheme.PromptValueSelectionOrDefaultAsync(
+    ///     "Choose option:",
+    ///     Enum.GetValues&lt;AdvancementEditOption&gt;(),
+    ///     opt => opt.ToString());
+    /// </code>
+    /// </example>
+    public static async Task<T?> PromptValueSelectionOrDefaultAsync<T>(
+        string title,
+        IEnumerable<T> choices,
+        Func<T, string>? displaySelector = null) where T : struct
+    {
+        var prompt = new SelectionPrompt<T>()
+            .Title($"[yellow]{title}[/]")
+            .PageSize(15)
+            .AddChoices(choices);
+
+        if (displaySelector != null)
+            prompt.UseConverter(displaySelector);
 
         try
         {
@@ -231,5 +281,4 @@ public static class TuiTheme
                 }
             });
     }
-
 }

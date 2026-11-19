@@ -87,10 +87,47 @@ public static class MinecraftUtils
     }
 
     /// <summary>
+    /// Constructs an expected physical file path for a Minecraft resource location without requiring
+    /// the target directory or file to already exist on disk.
+    /// </summary>
+    /// <param name="datapackDataPath">The root <c>data</c> directory path of the datapack.</param>
+    /// <param name="category">The registry/category folder (e.g., "advancement", "function").</param>
+    /// <param name="resourceLocation">The resource location (e.g., "my_namespace:monsters/mounted_menace").</param>
+    /// <param name="extension">The file extension including the leading dot (e.g., ".json").</param>
+    /// <returns>The constructed full physical path.</returns>
+    /// <exception cref="ArgumentException">Thrown when any argument is null or whitespace.</exception>
+    /// <example>
+    /// <code>
+    /// string path = MinecraftUtils.BuildPhysicalPath("C:/Pack/data", "advancement", "bacap:monsters/test", ".json");
+    /// // Returns "C:\Pack\data\bacap\advancement\monsters\test.json"
+    /// </code>
+    /// </example>
+    [PublicAPI]
+    public static string BuildPhysicalPath(
+        string datapackDataPath,
+        string category,
+        string resourceLocation,
+        string extension = ".json")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(datapackDataPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(category);
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceLocation);
+        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
+
+        var span = resourceLocation.AsSpan();
+        var ns = GetNamespaceSpan(span).ToString();
+        var relativePath = GetPathSpan(span).ToString().Replace('/', Path.DirectorySeparatorChar);
+
+        var normalizedExt = extension.StartsWith('.') ? extension : $".{extension}";
+
+        return Path.Combine(datapackDataPath, ns, category, $"{relativePath}{normalizedExt}");
+    }
+
+    /// <summary>
     /// Resolves a Minecraft resource location to an absolute physical file path within a datapack.
     /// Because resource locations lack file extensions, this method searches the target directory for a matching file.
     /// </summary>
-    /// <param name="datapackRoot">The root directory path of the datapack.</param>
+    /// <param name="datapackDataPath">The root directory path of the datapack.</param>
     /// <param name="category">The registry/category folder (e.g., "advancement", "function", "tags").</param>
     /// <param name="resourceLocation">The resource location (e.g., "my_namespace:my_functions/my_function").</param>
     /// <returns>The fully qualified physical path to the existing file.</returns>
@@ -103,9 +140,9 @@ public static class MinecraftUtils
     /// // Returns "C:\MyDatapack\data\bacap\function\weaponry\kill_mob.mcfunction"
     /// </code>
     /// </example>
-    public static string ResolvePhysicalPath(string datapackRoot, string category, string resourceLocation)
+    public static string ResolvePhysicalPath(string datapackDataPath, string category, string resourceLocation)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(datapackRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(datapackDataPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(category);
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceLocation);
 
@@ -117,7 +154,7 @@ public static class MinecraftUtils
         relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
 
         // datapack_root/data/namespace/category/relative/path
-        var expectedPathWithoutExt = Path.Combine(datapackRoot, "data", ns, category, relativePath);
+        var expectedPathWithoutExt = Path.Combine(datapackDataPath, ns, category, relativePath);
 
         var directory = Path.GetDirectoryName(expectedPathWithoutExt);
         var fileNameWithoutExt = Path.GetFileName(expectedPathWithoutExt);

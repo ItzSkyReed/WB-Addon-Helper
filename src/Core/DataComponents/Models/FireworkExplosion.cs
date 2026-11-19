@@ -32,7 +32,7 @@ public record FireworkExplosion(
     public ISnbtNode ToSnbt()
     {
         var builder = Snbt.Compound()
-            .PutOptional("shape", Shape, "small_ball")
+            .Put("shape", Shape)
             .PutOptional("has_trail", HasTrail, false)
             .PutOptional("has_twinkle", HasTwinkle, false);
 

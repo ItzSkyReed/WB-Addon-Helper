@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using BacapGenerator.Common;
 
 namespace BacapGenerator.Utils;
 
@@ -22,6 +23,21 @@ public static class BacapUtils
 
         var tabSpan = ExtractTab(resourceLocation.AsSpan());
         return tabSpan.IsEmpty ? null : tabSpan.ToString();
+    }
+
+    /// <summary>
+    /// Attempts to resolve a <see cref="BacapTab"/> from a reward function path.
+    /// </summary>
+    /// <param name="rewardFunctionPath">The reward function Minecraft path (e.g. <c>"bacap_rewards:animal/..."</c>).</param>
+    /// <param name="tab">When this method returns, contains the resolved <see cref="BacapTab"/> if found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if a valid tab was extracted; otherwise, <see langword="false"/>.</returns>
+    public static bool TryExtractTabFromPath(string? rewardFunctionPath, [NotNullWhen(true)] out BacapTab? tab)
+    {
+        tab = null;
+
+        return !string.IsNullOrWhiteSpace(rewardFunctionPath)
+               && TryExtractTab(rewardFunctionPath, out var tabName)
+               && BacapTab.TryFromFolderName(tabName, out tab);
     }
 
     /// <summary>

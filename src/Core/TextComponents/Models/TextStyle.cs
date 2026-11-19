@@ -19,7 +19,7 @@ public record TextStyle(
 )
 {
     [PublicAPI]
-    static TextStyle Empty { get; } = new();
+    public static TextStyle Empty { get; } = new();
 
     public void ApplyTo(SnbtCompoundBuilder builder)
     {
