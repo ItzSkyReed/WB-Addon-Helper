@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using Spectre.Console;
 using UI.Interfaces;
+using UI.Services;
 using UI.Styling;
 using WbGenerator.Exceptions;
 using WbGenerator.Services.Interfaces;
@@ -8,11 +9,14 @@ using WbGenerator.Services.Interfaces;
 namespace UI.Menus;
 
 /// <summary>
-/// Terminal UI action that coordinates WorldBorder addon releases, prompting for semantic versioning
-/// and compiling distribution archives.
+/// Terminal UI action that coordinates WorldBorder addon releases, prompting for semantic versioning,
+/// updating documentation, and compiling distribution archives.
 /// </summary>
 /// <param name="releaseService">The service executing the release workflow.</param>
-public partial class ReleaseMenu(IWbReleaseService releaseService) : IMainMenuAction
+/// <param name="documentationRunner">The shared runner service used to refresh documentation during release.</param>
+public partial class ReleaseMenu(
+    IWbReleaseService releaseService,
+    DocumentationRunnerService documentationRunner) : IMainMenuAction
 {
     [GeneratedRegex(@"^[0-9]+\.[0-9]+(\.[0-9]+)?(-(alpha|beta))?$", RegexOptions.IgnoreCase)]
     private static partial Regex VersionPatternRegex();
@@ -20,7 +24,7 @@ public partial class ReleaseMenu(IWbReleaseService releaseService) : IMainMenuAc
     public string Title => "Make WB Addon Release";
 
     /// <summary>
-    /// Prompts the user for a version string and executes the release packaging pipeline.
+    /// Prompts the user for a version string, updates documentation, and executes the release packaging pipeline.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task ExecuteAsync()
@@ -31,6 +35,12 @@ public partial class ReleaseMenu(IWbReleaseService releaseService) : IMainMenuAc
         if (version is null)
         {
             TuiTheme.ShowWarning("Release operation cancelled.");
+            TuiTheme.WaitForKey();
+            return;
+        }
+
+        if (!await documentationRunner.RunAndRenderReportAsync())
+        {
             TuiTheme.WaitForKey();
             return;
         }

@@ -32,6 +32,12 @@ public sealed class GlobalConfig
     public string DatabasePath { get; init; } = null!;
 
     /// <summary>
+    /// Gets the optional configuration settings for JSON documentation export.
+    /// </summary>
+    [ConfigurationKeyName("document_generator")]
+    public DocumentGeneratorConfig? DocumentGenerator { get; init; }
+
+    /// <summary>
     /// Validates all root configuration settings.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when validation constraints are violated.</exception>
@@ -48,5 +54,7 @@ public sealed class GlobalConfig
 
         if (string.IsNullOrWhiteSpace(DatabasePath))
             throw new InvalidOperationException("'database_path' must be provided.");
+
+        DocumentGenerator?.Validate();
     }
 }

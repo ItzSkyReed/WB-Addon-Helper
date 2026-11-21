@@ -9,6 +9,13 @@ wb_addon_path: "./wb_addon"
 
 database_path: "wb_addon.db"
 
+document_generator:
+  output_directory: "./docs"
+  output_file_name: "wb_addon.json"
+  datapacks:
+    - "bacap"
+    - "bacaped"
+
 # DATAPACKS
 # Filesystem paths, domains, and settings for each loaded datapack.
 datapacks:

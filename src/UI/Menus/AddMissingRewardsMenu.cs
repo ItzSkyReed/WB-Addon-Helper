@@ -132,26 +132,27 @@ public class AddMissingRewardsMenu(
                 .FirstOrDefault(candidate => candidate.McPath == parentMcPath)
             : null;
 
-        var parentColor = parentAdvancement?.Tier.Color() ?? "Grey84";
+        var parentColor = parentAdvancement?.Tier.Color ?? "Grey84";
         var parentText = Markup.Escape(parentMcPath ?? "None (Root)");
         table.AddRow($"[{TuiTheme.TablePropertyColor}]Parent[/]", $"[{parentColor}]{parentText}[/]");
 
-        if (adv is BacapAdvancement bacap)
+        if (adv is BacapAdvancement bacapAdvancement)
         {
-            table.AddRow($"[{TuiTheme.TablePropertyColor}]Title[/]", $"[white]{Markup.Escape(bacap.TitleText)}[/]");
+            table.AddRow($"[{TuiTheme.TablePropertyColor}]Title[/]", $"[white]{Markup.Escape(bacapAdvancement.TitleText)}[/]");
 
-            var descText = !string.IsNullOrWhiteSpace(bacap.CleanDescriptionText)
-                ? Markup.Escape(bacap.CleanDescriptionText)
+            var descText = !string.IsNullOrWhiteSpace(bacapAdvancement.CleanDescriptionText)
+                ? Markup.Escape(bacapAdvancement.CleanDescriptionText)
                 : "[Gray84]None[/]";
             table.AddRow($"[{TuiTheme.TablePropertyColor}]Description[/]", $"[white]{descText}[/]");
 
             table.AddRow(
                 $"[{TuiTheme.TablePropertyColor}]Tab[/]",
-                $"[{bacap.Tab.Color}]■[/] [{bacap.Tab.Color}]{Markup.Escape(bacap.Tab.DisplayName)}[/] [Gray84]({bacap.Tab.FolderName})[/]");
-            table.AddRow($"[{TuiTheme.TablePropertyColor}]Tier[/]", $"[{bacap.Tier.Color()}]{bacap.Tier.DisplayName()}[/]");
+                $"[{bacapAdvancement.Tab.Color}]■[/] [{bacapAdvancement.Tab.Color}]{Markup.Escape(bacapAdvancement.Tab.DisplayName)}[/] " +
+                $"[Gray84]({bacapAdvancement.Tab.FolderName})[/]");
+            table.AddRow($"[{TuiTheme.TablePropertyColor}]Tier[/]", $"[{bacapAdvancement.Tier.Color}]{bacapAdvancement.Tier.DisplayName}[/]");
 
             // Existing item rewards overview
-            var items = bacap.ItemRewardFunction.RewardItems;
+            var items = bacapAdvancement.ItemRewardFunction.RewardItems;
             if (items.Count > 0)
             {
                 var formattedItems = string.Join(", ", items.Select(item =>

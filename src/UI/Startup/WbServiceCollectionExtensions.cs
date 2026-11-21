@@ -2,6 +2,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using BacapGenerator.Configuration;
 using Microsoft.Extensions.Logging;
+using UI.Interfaces;
+using UI.Menus;
+using UI.Services;
+using WbGenerator.DocGen.Documentation.Services;
 using WbGenerator.Persistence;
 using WbGenerator.Services;
 using WbGenerator.Services.Interfaces;
@@ -41,6 +45,9 @@ public static class WbServiceCollectionExtensions
         services.AddScoped<IWbAddonGeneratorService, WbAddonGeneratorService>();
         services.AddScoped<IWbReleaseService, WbReleaseService>();
         services.AddScoped<IWbRewardFunctionGenerator, WbRewardFunctionGenerator>();
+        services.AddScoped<WbDocumentationExportService>();
+        services.AddScoped<DocumentationRunnerService>();
+        services.AddScoped<IMainMenuAction, GenerateDocumentationMenu>();
 
         return services;
     }
